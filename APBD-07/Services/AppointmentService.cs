@@ -85,7 +85,7 @@ public class AppointmentService : IAppointmentService
         await connection.OpenAsync();
 
         //weryfikacja wartości
-        var checkQuery = @"SELECT (SELECT COUNT(*) FROM Patients WHERE IdPatient = @IdPatient AND IsActive = 1) AS PatientActive, (SELECT COUNT(*) FROM Doctors WHERE IdDoctor = @IdDoctor AND IsActive = 1) AS DoctorActive, (SELECT COUNT(*) FROM Appointments WHERE IdDoctor = @IdDoctor AND AppointmentDate = @Date AND Status = 'Scheduled') AS DoctorBusy";
+        var checkQuery = @"SELECT (SELECT COUNT(*) FROM dbo.Patients WHERE IdPatient = @IdPatient AND IsActive = 1) AS PatientActive, (SELECT COUNT(*) FROM dbo.Doctors WHERE IdDoctor = @IdDoctor AND IsActive = 1) AS DoctorActive, (SELECT COUNT(*) FROM dbo.Appointments WHERE IdDoctor = @IdDoctor AND AppointmentDate = @Date AND Status = 'Scheduled') AS DoctorBusy";
    
         await using var checkCommand = new SqlCommand(checkQuery, connection);
         checkCommand.Parameters.AddWithValue("@IdPatient", request.IdPatient);
@@ -101,15 +101,15 @@ public class AppointmentService : IAppointmentService
         }
         await reader.CloseAsync();
         
-        var insertQuery = "INSERT INTO Appointments (IdPatient, IdDoctor, AppointmentDate, Status, Reason)VALUES (@IdPatient, @IdDoctor, @Date, 'Scheduled', @Reason); SELECT CAST(scope_identity() AS int);";
+        var insertQuery = "INSERT INTO Appointments (IdPatient, IdDoctor, AppointmentDate, Status, Reason)VALUES (@IdPatient, @IdDoctor, @Date, 'Scheduled', @Reason);";
         
-        await using var insertCmd = new SqlCommand(insertQuery, connection);
-        insertCmd.Parameters.AddWithValue("@IdPatient", request.IdPatient);
-        insertCmd.Parameters.AddWithValue("@IdDoctor", request.IdDoctor);
-        insertCmd.Parameters.AddWithValue("@Date", request.AppointmentDate);
-        insertCmd.Parameters.AddWithValue("@Reason", request.Reason);
+        await using var insertCommand = new SqlCommand(insertQuery, connection);
+        insertCommand.Parameters.AddWithValue("@IdPatient", request.IdPatient);
+        insertCommand.Parameters.AddWithValue("@IdDoctor", request.IdDoctor);
+        insertCommand.Parameters.AddWithValue("@Date", request.AppointmentDate);
+        insertCommand.Parameters.AddWithValue("@Reason", request.Reason);
 
-        return (int)await insertCmd.ExecuteScalarAsync();
+        return (int)await insertCommand.ExecuteScalarAsync();
     }
     
     public async Task<int> PutAppointmentAsync(UpdateAppointmentRequestDTO request, int id)
@@ -117,7 +117,7 @@ public class AppointmentService : IAppointmentService
     await using var connection = new SqlConnection(_connectionString);
     await connection.OpenAsync();
 
-    var currentQuery = "SELECT Status, AppointmentDate FROM Appointments WHERE IdAppointment = @Id";
+    var currentQuery = "SELECT Status, AppointmentDate FROM dbo.Appointments WHERE IdAppointment = @Id";
     await using var checkCurrentCommand = new SqlCommand(currentQuery, connection);
     checkCurrentCommand.Parameters.AddWithValue("@Id", id);
 
@@ -133,7 +133,7 @@ public class AppointmentService : IAppointmentService
 
     if (currentStatus == "Completed" && currentDate != request.AppointmentDate) return -4; // badReq: Zmiana daty przy completed
     
-    var checkQuery = "SELECT (SELECT COUNT(*) FROM Patients WHERE IdPatient = @IdPatient AND IsActive = 1) AS PatientActive, (SELECT COUNT(*) FROM Doctors WHERE IdDoctor = @IdDoctor AND IsActive = 1) AS DoctorActive, (SELECT COUNT(*) FROM Appointments WHERE IdDoctor = @IdDoctor AND AppointmentDate = @Date AND Status = 'Scheduled' AND IdAppointment != @Id) AS DoctorBusy";
+    var checkQuery = "SELECT (SELECT COUNT(*) FROM dbo.Patients WHERE IdPatient = @IdPatient AND IsActive = 1) AS PatientActive, (SELECT COUNT(*) FROM dbo.Doctors WHERE IdDoctor = @IdDoctor AND IsActive = 1) AS DoctorActive, (SELECT COUNT(*) FROM dbo.Appointments WHERE IdDoctor = @IdDoctor AND AppointmentDate = @Date AND Status = 'Scheduled' AND IdAppointment != @Id) AS DoctorBusy";
     
     await using var checkCommand = new SqlCommand(checkQuery, connection);
     checkCommand.Parameters.AddWithValue("@IdPatient", request.IdPatient);
@@ -172,7 +172,7 @@ public class AppointmentService : IAppointmentService
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
 
-        var checkQuery = "SELECT (SELECT COUNT(*) FROM Appointments WHERE IdAppointment = @Id) AS QueryExists, (SELECT COUNT(*) FROM Appointments WHERE IdAppointment = @Id AND Status = 'Completed') AS IsCompleted";
+        var checkQuery = "SELECT (SELECT COUNT(*) FROM dbo.Appointments WHERE IdAppointment = @Id) AS QueryExists, (SELECT COUNT(*) FROM dbo.Appointments WHERE IdAppointment = @Id AND Status = 'Completed') AS IsCompleted";
         await using var checkCommand = new SqlCommand(checkQuery, connection);
 
         checkCommand.Parameters.AddWithValue("@Id", id);
@@ -185,7 +185,7 @@ public class AppointmentService : IAppointmentService
         }
         await reader.CloseAsync();
         
-        var query = "DELETE FROM Appointments WHERE IdAppointment = @Id";
+        var query = "DELETE FROM dbo.Appointments WHERE IdAppointment = @Id";
         await using var command = new SqlCommand(query, connection);
         
         command.Parameters.AddWithValue("@Id", id);
